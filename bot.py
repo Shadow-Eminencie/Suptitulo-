@@ -10,6 +10,7 @@ bot_token = "8442539810:AAFr0JoA1XB2npLJK60Vo7V1KLzDtRzRUNU"
 
 app = Client("Converting_Bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 
+
 USER_DIRECTORY = "Download_Converting"
 
 def create_user_directory():
@@ -27,6 +28,9 @@ async def handle_audio(client, message):
     reply_to_message_id = message.id
     chat_id = message.chat.id
     
+    audio_path = None
+    srt_path = None
+    
     try:
         # Descargar el audio
         audio_path = f"{user_directory}/{file_unique_id}_{reply_to_message_id}.mp3"
@@ -35,24 +39,20 @@ async def handle_audio(client, message):
         
         # Procesar con Whisper
         await msg.edit("🔍 Generando subtítulos con Whisper...")
-        srt_path = f"{user_directory}/{file_unique_id}_{reply_to_message_id}.srt"
         
-        # Ejecutar Whisper de forma asíncrona
+        # Construir el comando Whisper
         command = f"whisper \"{audio_path}\" --language Spanish --model small -o \"{user_directory}\" --output_format srt"
-        process = await asyncio.create_subprocess_shell(
-            command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
+        print(f"\n\n🔥 Ejecutando Whisper: {command}\n")
         
-        # Esperar a que termine el proceso
-        stdout, stderr = await process.communicate()
+        # Ejecutar el comando con os.system (muestra output en terminal)
+        start_time = time.time()
+        return_code = os.system(command)
+        elapsed_time = time.time() - start_time
         
-        if process.returncode != 0:
-            error = stderr.decode().strip() if stderr else "Error desconocido"
-            raise Exception(f"Whisper falló: {error}")
+        print(f"\n✅ Whisper completado en {elapsed_time:.2f} segundos. Código de retorno: {return_code}")
         
         # Verificar si se creó el archivo SRT
+        srt_path = f"{user_directory}/{os.path.basename(audio_path).rsplit('.', 1)[0]}.srt"
         if not os.path.exists(srt_path):
             raise Exception("No se generó el archivo de subtítulos")
         
@@ -73,12 +73,18 @@ async def handle_audio(client, message):
             await msg.edit(error_msg)
         else:
             await message.reply_text(error_msg, reply_to_message_id=reply_to_message_id)
+        print(f"\n❌ Error en el proceso: {str(e)}")
     
     finally:
         # Limpiar archivos temporales
         for file_path in [audio_path, srt_path]:
-            if 'file_path' in locals() and os.path.exists(file_path):
-                os.remove(file_path)
+            if file_path and os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                    print(f"🗑️ Archivo eliminado: {file_path}")
+                except Exception as e:
+                    print(f"⚠️ No se pudo eliminar {file_path}: {str(e)}")
+        print("="*50 + "\n")
                 
 print("bot iniciado")
 app.run()
