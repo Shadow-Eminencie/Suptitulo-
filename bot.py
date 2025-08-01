@@ -78,7 +78,7 @@ async def handle_audio(client, message):
     
     finally:
         # Limpiar archivos temporales
-        for file_path in [audio_path, srt_path]:
+        for file_path in [srt_path]:
             if file_path and os.path.exists(file_path):
                 try:
                     os.remove(file_path)
